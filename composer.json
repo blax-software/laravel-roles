@@ -1,0 +1,30 @@
+{
+    "name": "blax-software/laravel-roles",
+    "type": "library",
+    "description": "Laravel roles and permission system",
+    "keywords": [
+        "roles",
+        "permission",
+        "laravel",
+        "blax"
+    ],
+    "homepage": "http://www.blax.at",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Fabian Wagner",
+            "email": "fabian@blax.at",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Ratchet\\": "src/Ratchet"
+        }
+    },
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+    }
+}
