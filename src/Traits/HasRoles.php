@@ -5,28 +5,27 @@ namespace Blax\Roles;
 trait HasRoles
 {
     /**
-     * The roles that belong to the model.
+     * Get all roles for the user.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     * @return \Illuminate\Database\Eloquent\Relations\MorphToMany
      */
     public function roles()
     {
-        return $this->belongsToMany(
-            config('permissions.models.role'),
-            config('permissions.table_names.model_has_roles'),
-            'model_id',
-            'role_id'
+        return $this->morphToMany(
+            config('permissions.models.role', \Blax\Roles\Models\Role::class),
+            'member',
+            config('permissions.table_names.role_members', 'role_members')
         );
     }
 
     /**
-     * Check if the model has a specific role.
+     * Check if the user has a specific role.
      *
-     * @param  string  $role
+     * @param string $roleSlug
      * @return bool
      */
-    public function hasRole($role)
+    public function hasRole(string $roleSlug): bool
     {
-        return $this->roles()->where('name', $role)->exists();
+        return $this->roles()->where('slug', $roleSlug)->exists();
     }
 }

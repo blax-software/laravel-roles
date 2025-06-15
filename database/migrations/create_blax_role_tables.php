@@ -13,25 +13,52 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // TODO finish the migration
-
-        Schema::create('roles', function (Blueprint $table) {
+        // Permission
+        Schema::create(config('permissions.table_names.permissions'), function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->string('description')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('permissions', function (Blueprint $table) {
+        // PermissionUsage
+        Schema::create(config('permissions.table_names.permission_usage'), function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
+            $table->morphs('user');
+            $table->json('context')->nullable();
+            $table->timestamps();
+        });
+        
+        // Role
+        Schema::create(config('permissions.table_names.roles'), function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('parent_id')
+                ->nullable()
+                ->constrained('roles')
+                ->onDelete('set null');
+            $table->string('name');
+            $table->string('slug',32)->unique();
             $table->string('description')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('assignments', function (Blueprint $table) {
-            $table->morphs('affected');
-            $table->morphs('assignment');
+        // RoleMember
+        Schema::create(config('permissions.table_names.role_members'), function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
+            $table->morphs('member');
+            $table->json('context')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+
+        // RolePermission
+        Schema::create(config('permissions.table_names.role_permission'), function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
+            $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
+            $table->json('context')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
         });
