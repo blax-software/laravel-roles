@@ -40,5 +40,14 @@
     },
     "require-dev": {
         "laravel/pint": "^1.22"
-    }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Blax\\Roles\\RolesServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
