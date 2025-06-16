@@ -46,14 +46,9 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
             __DIR__.'/../config/roles.php' => $this->app->configPath('roles.php'),
         ], 'roles-config');
 
-        $publishesMigrationsMethod = method_exists($this, 'publishesMigrations')
-                ? 'publishesMigrations'
-                : 'publishes';
-
-        $this->{$publishesMigrationsMethod}([
-            __DIR__.'/../database/migrations' => $this->app->databasePath('migrations'),
+        $this->publishes([
+            __DIR__.'/../database/migrations/create_blax_role_tables.php.stub' => $this->getMigrationFileName('create_blax_role_tables.php'),
         ], 'roles-migrations');
-
     }
 
         /**

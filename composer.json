@@ -49,5 +49,11 @@
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts": {
+        "post-autoload-dump": [
+            "@php artisan vendor:publish --tag=roles-migrations --force",
+            "@php artisan vendor:publish --tag=roles-config --force"
+        ]
+    }
 }
