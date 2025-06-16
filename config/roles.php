@@ -11,9 +11,11 @@ return [
     ],
 
     'table_names' => [
-        'roles' => 'roles',
         'permissions' => 'permissions',
-        'permission_usage' => 'permission_usage',
+        'permission_usage' => 'permission_usages',
+        'roles' => 'roles',
+        'role_member' => 'role_members',
+        'role_permission' => 'role_permissions',
     ],
 
 ];
