@@ -2,28 +2,31 @@
 
 namespace Blax\Roles\Models;
 
+use Blax\Roles\Traits\WillExpire;
 use Illuminate\Database\Eloquent\Model;
 
-class PermissionUsage extends Model
+class PermissionMember extends Model
 {
+    use WillExpire;
+
     protected $fillable = [
         'permission_id',
-        'usage',
+        'member_id',
+        'member_type',
         'context',
-        'user_type',
-        'user_id',
+        'expires_at',
     ];
 
     protected $casts = [
         'context' => 'array',
-        'usage' => 'float',
+        'expires_at' => 'datetime',
     ];
 
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
 
-        $this->table = config('roles.table_names.permission_usages') ?: parent::getTable();
+        $this->table = config('roles.table_names.permission_members') ?: parent::getTable();
     }
 
     public function permission()
@@ -31,7 +34,7 @@ class PermissionUsage extends Model
         return $this->belongsTo(Permission::class);
     }
 
-    public function user()
+    public function member()
     {
         return $this->morphTo();
     }

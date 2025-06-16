@@ -2,7 +2,7 @@
 
 namespace Blax\Roles;
 
-class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
+class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
 {
     /**
      * Register the service provider.
@@ -73,5 +73,6 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->app->bind(\Blax\Roles\Models\RolePermission::class, fn ($app) => $app->make($app->config['roles.models.role_permission']));
         $this->app->bind(\Blax\Roles\Models\Permission::class, fn ($app) => $app->make($app->config['roles.models.permission']));
         $this->app->bind(\Blax\Roles\Models\PermissionUsage::class, fn ($app) => $app->make($app->config['roles.models.permission_usage']));
+        $this->app->bind(\Blax\Roles\Models\PermissionMember::class, fn ($app) => $app->make($app->config['roles.models.permission_members']));
     }
 }

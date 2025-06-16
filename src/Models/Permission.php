@@ -4,7 +4,8 @@ namespace Blax\Roles\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Permission extends Model {
+class Permission extends Model
+{
     protected $fillable = [
         'slug',
         'description',
@@ -25,5 +26,10 @@ class Permission extends Model {
     public function roles()
     {
         return $this->belongsToMany(RolePermission::class);
+    }
+
+    public function members()
+    {
+        return $this->hasMany(PermissionMember::class);
     }
 }

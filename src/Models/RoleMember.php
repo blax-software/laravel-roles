@@ -2,14 +2,23 @@
 
 namespace Blax\Roles\Models;
 
+use Blax\Roles\Traits\WillExpire;
 use Illuminate\Database\Eloquent\Model;
 
-class RoleMember extends Model {
+class RoleMember extends Model
+{
+    use WillExpire;
+
     protected $fillable = [
         'role_id',
         'member',
         'context',
         'expires_at',
+    ];
+
+    protected $casts = [
+        'context' => 'array',
+        'expires_at' => 'datetime',
     ];
 
     public function __construct(array $attributes = [])
@@ -19,11 +28,13 @@ class RoleMember extends Model {
         $this->table = config('roles.table_names.role_members') ?: parent::getTable();
     }
 
-    public function role() {
+    public function role()
+    {
         return $this->belongsTo(Role::class);
     }
-    
-    public function member() {
+
+    public function member()
+    {
         return $this->morphTo();
     }
 }

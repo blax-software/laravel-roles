@@ -21,15 +21,26 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // PermissionMember
+        Schema::create(config('roles.table_names.permission_members'), function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
+            $table->morphs('member');
+            $table->json('context')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+
         // PermissionUsage
         Schema::create(config('roles.table_names.permission_usage'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
+            $table->float('usage', 8)->default(1);
             $table->morphs('user');
             $table->json('context')->nullable();
             $table->timestamps();
         });
-        
+
         // Role
         Schema::create(config('roles.table_names.roles'), function (Blueprint $table) {
             $table->id();
@@ -73,6 +84,7 @@ return new class extends Migration
         Schema::dropIfExists(config('roles.table_names.role_members'));
         Schema::dropIfExists(config('roles.table_names.roles'));
         Schema::dropIfExists(config('roles.table_names.permission_usage'));
+        Schema::dropIfExists(config('roles.table_names.permission_members'));
         Schema::dropIfExists(config('roles.table_names.permissions'));
     }
 };
