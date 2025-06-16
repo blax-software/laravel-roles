@@ -12,9 +12,9 @@ trait HasRoles
     public function roles()
     {
         return $this->morphToMany(
-            config('permissions.models.role', \Blax\Roles\Models\Role::class),
+            config('roles.models.role', \Blax\Roles\Models\Role::class),
             'member',
-            config('permissions.table_names.role_members', 'role_members')
+            config('roles.table_names.role_members', 'role_members')
         );
     }
 

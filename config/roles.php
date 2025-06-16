@@ -8,7 +8,6 @@ return [
         'role_permission' => \Blax\Roles\Models\RolePermission::class,
         'permission' => \Blax\Roles\Models\Permission::class,
         'permission_usage' => \Blax\Roles\Models\PermissionUsage::class,
-
     ],
 
     'table_names' => [

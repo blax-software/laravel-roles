@@ -14,7 +14,7 @@ class RolePermission extends Model {
     {
         parent::__construct($attributes);
 
-        $this->table = config('permissions.table_names.role_permission') ?: parent::getTable();
+        $this->table = config('roles.table_names.role_permission') ?: parent::getTable();
     }
 
     public function role() {

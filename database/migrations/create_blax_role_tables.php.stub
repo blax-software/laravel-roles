@@ -14,7 +14,7 @@ return new class extends Migration
     public function up(): void
     {
         // Permission
-        Schema::create(config('permissions.table_names.permissions'), function (Blueprint $table) {
+        Schema::create(config('roles.table_names.permissions'), function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->string('description')->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
         });
 
         // PermissionUsage
-        Schema::create(config('permissions.table_names.permission_usage'), function (Blueprint $table) {
+        Schema::create(config('roles.table_names.permission_usage'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
             $table->morphs('user');
@@ -31,7 +31,7 @@ return new class extends Migration
         });
         
         // Role
-        Schema::create(config('permissions.table_names.roles'), function (Blueprint $table) {
+        Schema::create(config('roles.table_names.roles'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('parent_id')
                 ->nullable()
@@ -44,7 +44,7 @@ return new class extends Migration
         });
 
         // RoleMember
-        Schema::create(config('permissions.table_names.role_members'), function (Blueprint $table) {
+        Schema::create(config('roles.table_names.role_members'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
             $table->morphs('member');
@@ -54,7 +54,7 @@ return new class extends Migration
         });
 
         // RolePermission
-        Schema::create(config('permissions.table_names.role_permission'), function (Blueprint $table) {
+        Schema::create(config('roles.table_names.role_permission'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
             $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
@@ -69,6 +69,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists(config('roles.table_names.role_permission'));
+        Schema::dropIfExists(config('roles.table_names.role_members'));
+        Schema::dropIfExists(config('roles.table_names.roles'));
+        Schema::dropIfExists(config('roles.table_names.permission_usage'));
+        Schema::dropIfExists(config('roles.table_names.permissions'));
     }
 };

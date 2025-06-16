@@ -11,8 +11,7 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     public function register()
     {
-        $this->offerPublishing();
-
+        // 
     }
 
     /**
@@ -22,7 +21,9 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     public function boot()
     {
-        // Load routes, migrations, etc. if needed
+        $this->offerPublishing();
+
+        $this->registerModelBindings();
     }
 
     /**
@@ -42,11 +43,20 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
         }
 
         $this->publishes([
-            __DIR__.'/../config/permission.php' => config_path('permission.php'),
-        ], 'permission-config');
+            __DIR__.'/../config/roles.php' => config_path('roles.php'),
+        ], 'roles-config');
 
         $this->publishes([
-            __DIR__.'/../database/migrations/create_permission_tables.php.stub' => $this->getMigrationFileName('create_permission_tables.php'),
-        ], 'permission-migrations');
+            __DIR__.'/../database/migrations/create_blax_role_tables.php.stub' => $this->getMigrationFileName('create_blax_role_tables.php'),
+        ], 'roles-migrations');
+    }
+
+    protected function registerModelBindings(): void
+    {
+        $this->app->bind(\Blax\Roles\Models\Role::class, fn ($app) => $app->make($app->config['roles.models.role']));
+        $this->app->bind(\Blax\Roles\Models\RoleMember::class, fn ($app) => $app->make($app->config['roles.models.role_member']));
+        $this->app->bind(\Blax\Roles\Models\RolePermission::class, fn ($app) => $app->make($app->config['roles.models.role_permission']));
+        $this->app->bind(\Blax\Roles\Models\Permission::class, fn ($app) => $app->make($app->config['roles.models.permission']));
+        $this->app->bind(\Blax\Roles\Models\PermissionUsage::class, fn ($app) => $app->make($app->config['roles.models.permission_usage']));
     }
 }

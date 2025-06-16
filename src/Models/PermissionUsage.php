@@ -14,7 +14,7 @@ class PermissionUsage extends Model {
     {
         parent::__construct($attributes);
 
-        $this->table = config('permissions.table_names.permission_usages') ?: parent::getTable();
+        $this->table = config('roles.table_names.permission_usages') ?: parent::getTable();
     }
 
     public function permission()
