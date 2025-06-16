@@ -11,7 +11,10 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     public function register()
     {
-        // 
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/roles.php',
+            'roles'
+        );
     }
 
     /**
