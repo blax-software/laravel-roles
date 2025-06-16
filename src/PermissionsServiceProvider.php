@@ -51,6 +51,21 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
         ], 'roles-migrations');
     }
 
+        /**
+     * Returns existing migration file if found, else uses the current timestamp.
+     */
+    protected function getMigrationFileName(string $migrationFileName): string
+    {
+        $timestamp = date('Y_m_d_His');
+
+        $filesystem = $this->app->make(\Illuminate\Filesystem\Filesystem::class);
+
+        return \Illuminate\Support\Collection::make([$this->app->databasePath().DIRECTORY_SEPARATOR.'migrations'.DIRECTORY_SEPARATOR])
+            ->flatMap(fn ($path) => $filesystem->glob($path.'*_'.$migrationFileName))
+            ->push($this->app->databasePath()."/migrations/{$timestamp}_{$migrationFileName}")
+            ->first();
+    }
+
     protected function registerModelBindings(): void
     {
         $this->app->bind(\Blax\Roles\Models\Role::class, fn ($app) => $app->make($app->config['roles.models.role']));
