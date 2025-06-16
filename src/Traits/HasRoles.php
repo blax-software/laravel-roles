@@ -1,6 +1,6 @@
 <?php
 
-namespace Blax\Roles;
+namespace Blax\Roles\Traits;
 
 trait HasRoles
 {

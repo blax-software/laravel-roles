@@ -36,22 +36,24 @@ class PermissionsServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     protected function offerPublishing()
     {
-        if (! $this->app->runningInConsole()) {
-            return;
-        }
-
-        if (! function_exists('config_path')) {
-            // function not available and 'publish' not relevant in Lumen
+        if (
+            ! $this->app->runningInConsole()
+        ) {
             return;
         }
 
         $this->publishes([
-            __DIR__.'/../config/roles.php' => config_path('roles.php'),
+            __DIR__.'/../config/roles.php' => $this->app->configPath('roles.php'),
         ], 'roles-config');
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_blax_role_tables.php.stub' => $this->getMigrationFileName('create_blax_role_tables.php'),
+        $publishesMigrationsMethod = method_exists($this, 'publishesMigrations')
+                ? 'publishesMigrations'
+                : 'publishes';
+
+        $this->{$publishesMigrationsMethod}([
+            __DIR__.'/../database/migrations' => $this->app->databasePath('migrations'),
         ], 'roles-migrations');
+
     }
 
         /**

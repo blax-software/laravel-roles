@@ -16,7 +16,7 @@ return new class extends Migration
         // Permission
         Schema::create(config('roles.table_names.permissions'), function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('slug')->unique();
             $table->string('description')->nullable();
             $table->timestamps();
         });
@@ -37,8 +37,8 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('roles')
                 ->onDelete('set null');
-            $table->string('name');
-            $table->string('slug',32)->unique();
+            $table->string('name')->nullable();
+            $table->string('slug')->unique();
             $table->string('description')->nullable();
             $table->timestamps();
         });
