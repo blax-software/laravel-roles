@@ -44,7 +44,7 @@ return new class extends Migration
         });
 
         // RoleMember
-        Schema::create(config('roles.table_names.role_members'), function (Blueprint $table) {
+        Schema::create(config('roles.table_names.role_member'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
             $table->morphs('member');
