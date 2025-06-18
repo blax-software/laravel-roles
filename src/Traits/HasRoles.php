@@ -25,12 +25,24 @@ trait HasRoles
     /**
      * Check if the user has a specific role.
      *
-     * @param string $roleSlug
+     * @param int|string|Role $role
      * @return bool
      */
-    public function hasRole(string $roleSlug): bool
+    public function hasRole(string|Role $role): bool
     {
-        return $this->roles()->where('slug', $roleSlug)->exists();
+        if (is_string($role) && !is_numeric($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::where('slug', $role)->first();
+        } elseif (is_numeric($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        } elseif ($role instanceof Role) {
+            return $this->roles()->where('id', $role->id)->exists();
+        } else {
+            throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
+        }
+
+        return $role
+            ? $this->roles()->where('id', $role->id)->exists()
+            : false;
     }
 
     /**
