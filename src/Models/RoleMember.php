@@ -14,11 +14,15 @@ class RoleMember extends Model
         'member',
         'context',
         'expires_at',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [
         'context' => 'array',
         'expires_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function __construct(array $attributes = [])

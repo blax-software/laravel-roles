@@ -35,13 +35,14 @@ trait HasRoles
         } elseif (is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
         } elseif ($role instanceof Role) {
-            return $this->roles()->where('id', $role->id)->exists();
+            // use pivot column to avoid ambiguous `id`
+            return $this->roles()->wherePivot('role_id', $role->id)->exists();
         } else {
             throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
         }
 
         return $role
-            ? $this->roles()->where('id', $role->id)->exists()
+            ? $this->roles()->wherePivot('role_id', $role->id)->exists()
             : false;
     }
 
