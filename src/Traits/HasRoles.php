@@ -35,7 +35,6 @@ trait HasRoles
         } elseif (is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
         } elseif ($role instanceof Role) {
-            // use pivot column to avoid ambiguous `id`
             return $this->roles()->wherePivot('role_id', $role->id)->exists();
         } else {
             throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
@@ -107,9 +106,15 @@ trait HasRoles
                 $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
             } elseif ($role instanceof Role) {
                 $roleModel = $role;
+            } elseif (is_object($role) && isset($role->id)) {
+                $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role->id);
+            } elseif (is_array($role) && isset($role['id'])) {
+                $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role['id']);
+            } else {
+                throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
             }
 
-            if ($roleModel instanceof Role) {
+            if (@$roleModel instanceof Role) {
                 $roleIds[] = $roleModel->id;
             }
         }
@@ -135,6 +140,7 @@ trait HasRoles
         }
         return false;
     }
+
     /**
      * Checks if the memberable has all of the given roles
      * 
