@@ -22,7 +22,7 @@ return new class extends Migration
         });
 
         // PermissionMember
-        Schema::create(config('roles.table_names.permission_members'), function (Blueprint $table) {
+        Schema::create(config('roles.table_names.permission_member'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
             $table->morphs('member');
@@ -63,16 +63,6 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
         });
-
-        // RolePermission
-        Schema::create(config('roles.table_names.role_permission'), function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
-            $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
-            $table->json('context')->nullable();
-            $table->timestamp('expires_at')->nullable();
-            $table->timestamps();
-        });
     }
 
     /**
@@ -80,11 +70,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists(config('roles.table_names.role_permission'));
         Schema::dropIfExists(config('roles.table_names.role_members'));
         Schema::dropIfExists(config('roles.table_names.roles'));
         Schema::dropIfExists(config('roles.table_names.permission_usage'));
-        Schema::dropIfExists(config('roles.table_names.permission_members'));
+        Schema::dropIfExists(config('roles.table_names.permission_member'));
         Schema::dropIfExists(config('roles.table_names.permissions'));
     }
 };

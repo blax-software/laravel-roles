@@ -20,16 +20,22 @@ class Permission extends Model
 
     public function usages()
     {
-        return $this->hasMany(PermissionUsage::class);
+        return $this->hasMany(config('roles.table_names.permission_usage'));
     }
 
     public function roles()
     {
-        return $this->belongsToMany(RolePermission::class);
+        return $this->morphToMany(
+            config('roles.table_names.role'),
+            'member',
+            config('roles.table_names.permission_member'),
+            'permission_id',
+            'member_id'
+        )->where('member_type', config('roles.table_names.role'));
     }
 
     public function members()
     {
-        return $this->hasMany(PermissionMember::class);
+        return $this->hasMany(config('roles.table_names.permission_member'));
     }
 }

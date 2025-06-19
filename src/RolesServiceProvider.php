@@ -12,7 +12,7 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../config/roles.php',
+            __DIR__ . '/../config/roles.php',
             'roles'
         );
     }
@@ -43,15 +43,15 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
         }
 
         $this->publishes([
-            __DIR__.'/../config/roles.php' => $this->app->configPath('roles.php'),
+            __DIR__ . '/../config/roles.php' => $this->app->configPath('roles.php'),
         ], 'roles-config');
 
         $this->publishes([
-            __DIR__.'/../database/migrations/create_blax_role_tables.php.stub' => $this->getMigrationFileName('create_blax_role_tables.php'),
+            __DIR__ . '/../database/migrations/create_blax_role_tables.php.stub' => $this->getMigrationFileName('create_blax_role_tables.php'),
         ], 'roles-migrations');
     }
 
-        /**
+    /**
      * Returns existing migration file if found, else uses the current timestamp.
      */
     protected function getMigrationFileName(string $migrationFileName): string
@@ -60,19 +60,18 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
 
         $filesystem = $this->app->make(\Illuminate\Filesystem\Filesystem::class);
 
-        return \Illuminate\Support\Collection::make([$this->app->databasePath().DIRECTORY_SEPARATOR.'migrations'.DIRECTORY_SEPARATOR])
-            ->flatMap(fn ($path) => $filesystem->glob($path.'*_'.$migrationFileName))
-            ->push($this->app->databasePath()."/migrations/{$timestamp}_{$migrationFileName}")
+        return \Illuminate\Support\Collection::make([$this->app->databasePath() . DIRECTORY_SEPARATOR . 'migrations' . DIRECTORY_SEPARATOR])
+            ->flatMap(fn($path) => $filesystem->glob($path . '*_' . $migrationFileName))
+            ->push($this->app->databasePath() . "/migrations/{$timestamp}_{$migrationFileName}")
             ->first();
     }
 
     protected function registerModelBindings(): void
     {
-        $this->app->bind(\Blax\Roles\Models\Role::class, fn ($app) => $app->make($app->config['roles.models.role']));
-        $this->app->bind(\Blax\Roles\Models\RoleMember::class, fn ($app) => $app->make($app->config['roles.models.role_member']));
-        $this->app->bind(\Blax\Roles\Models\RolePermission::class, fn ($app) => $app->make($app->config['roles.models.role_permission']));
-        $this->app->bind(\Blax\Roles\Models\Permission::class, fn ($app) => $app->make($app->config['roles.models.permission']));
-        $this->app->bind(\Blax\Roles\Models\PermissionUsage::class, fn ($app) => $app->make($app->config['roles.models.permission_usage']));
-        $this->app->bind(\Blax\Roles\Models\PermissionMember::class, fn ($app) => $app->make($app->config['roles.models.permission_members']));
+        $this->app->bind(\Blax\Roles\Models\Role::class, fn($app) => $app->make($app->config['roles.models.role']));
+        $this->app->bind(\Blax\Roles\Models\RoleMember::class, fn($app) => $app->make($app->config['roles.models.role_member']));
+        $this->app->bind(\Blax\Roles\Models\Permission::class, fn($app) => $app->make($app->config['roles.models.permission']));
+        $this->app->bind(\Blax\Roles\Models\PermissionUsage::class, fn($app) => $app->make($app->config['roles.models.permission_usage']));
+        $this->app->bind(\Blax\Roles\Models\PermissionMember::class, fn($app) => $app->make($app->config['roles.models.permission_member']));
     }
 }
