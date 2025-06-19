@@ -6,11 +6,6 @@ use Illuminate\Support\Collection;
 
 trait HasPermissions
 {
-    public function can(string $permission): bool
-    {
-        return $this->hasPermission($permission);
-    }
-
     public function hasPermission(string $permission): bool
     {
         $allpermissions = $this->allPermissions();
@@ -45,7 +40,7 @@ trait HasPermissions
         );
     }
 
-    public function addPermission($permission)
+    public function assignPermission($permission)
     {
         $permission_class = config('roles.models.permission');
 
