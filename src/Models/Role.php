@@ -2,10 +2,13 @@
 
 namespace Blax\Roles\Models;
 
+use Blax\Roles\Traits\HasPermissions;
 use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
+    use HasPermissions;
+
     protected $fillable = [
         'parent_id',
         'name',
@@ -23,11 +26,6 @@ class Role extends Model
     public function members()
     {
         return $this->hasMany(RoleMember::class, 'role_id', 'id');
-    }
-
-    public function permissions()
-    {
-        return $this->hasMany(Permission::class, 'role_id', 'id');
     }
 
     public function parent()

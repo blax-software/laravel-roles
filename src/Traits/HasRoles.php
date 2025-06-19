@@ -47,9 +47,9 @@ trait HasRoles
 
     /**
      * Assigns the role to the memberable
-     * 
+     *
      * @param int|string|Role $role
-     * 
+     *
      * @return $this
      */
     public function assignRole(string|Role $role)
@@ -58,7 +58,9 @@ trait HasRoles
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::where('slug', $role)->first();
         } elseif (is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
-        } elseif ($role instanceof Role) {
+        }
+
+        if ($role instanceof Role) {
             $this->roles()->attach($role);
         } else {
             throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
@@ -69,9 +71,9 @@ trait HasRoles
 
     /**
      * Removes the role from the memberable
-     * 
+     *
      * @param int|string|Role $role
-     * 
+     *
      * @return $this
      */
     public function removeRole(string|Role $role)
@@ -91,9 +93,9 @@ trait HasRoles
 
     /**
      * Syncs the roles for the memberable
-     * 
+     *
      * @param array $roles
-     * 
+     *
      * @return $this
      */
     public function syncRoles(array $roles)
@@ -126,9 +128,9 @@ trait HasRoles
 
     /**
      * Checks if the memberable has any of the given roles
-     * 
+     *
      * @param array $roles
-     * 
+     *
      * @return bool
      */
     public function hasAnyRole(array $roles): bool
@@ -143,9 +145,9 @@ trait HasRoles
 
     /**
      * Checks if the memberable has all of the given roles
-     * 
+     *
      * @param array $roles
-     * 
+     *
      * @return bool
      */
     public function hasAllRoles(array $roles): bool
