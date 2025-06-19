@@ -13,7 +13,7 @@ return [
     'table_names' => [
         'permissions' => 'permissions',
         'permission_usage' => 'permission_usages',
-        'permission_member' => 'permission_member',
+        'permission_member' => 'permission_members',
         'roles' => 'roles',
         'role_member' => 'role_members',
         'role_permission' => 'role_permissions',

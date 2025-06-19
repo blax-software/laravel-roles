@@ -47,7 +47,9 @@ trait HasPermissions
         if (is_numeric($permission)) {
             $permission = $permission_class::find($permission);
         } elseif (is_string($permission)) {
-            $permission = $permission_class::where('slug', $permission)->firstOrCreate();
+            $permission = $permission_class::firstOrCreate([
+                'slug' => $permission
+            ]);
         }
 
         if ($permission instanceof $permission_class) {
@@ -57,7 +59,9 @@ trait HasPermissions
         }
 
         if ($permission) {
-            return $this->permissions()->syncWithoutDetaching($permission);
+            $this->permissions()->syncWithoutDetaching($permission);
+
+            return true;
         }
 
         return false;
@@ -73,17 +77,13 @@ trait HasPermissions
             $permission = $permission_class::where('slug', $permission)->first();
         }
 
-        if ($permission instanceof $permission_class) {
-            // Already a Permission instance
-        } else {
-            throw new \InvalidArgumentException('Permission must be a string, numeric ID, or an instance of Permission.');
-        }
-
         if ($permission) {
-            return $this->permissions()->detach($permission);
+            $this->permissions()->detach($permission);
+
+            return true;
         }
 
-        return false;
+        return true;
     }
 
     /**
