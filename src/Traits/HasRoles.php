@@ -55,7 +55,7 @@ trait HasRoles
     public function assignRole(string|Role $role)
     {
         if (is_string($role) && !is_numeric($role)) {
-            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::where('slug', $role)->first();
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate(['slug' => $role]);
         } elseif (is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
         }
@@ -103,7 +103,7 @@ trait HasRoles
         $roleIds = [];
         foreach ($roles as $role) {
             if (is_string($role) && !is_numeric($role)) {
-                $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::where('slug', $role)->first();
+                $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate(['slug' => $role]);
             } elseif (is_numeric($role)) {
                 $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
             } elseif ($role instanceof Role) {
