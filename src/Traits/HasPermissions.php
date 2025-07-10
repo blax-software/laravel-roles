@@ -43,7 +43,7 @@ trait HasPermissions
     public function permissions()
     {
         $rolePerms   = $this->rolePermissions()->get();
-        $directPerms = $this->permissions()->get();
+        $directPerms = $this->individualPermissions()->get();
 
         return $rolePerms
             ->merge($directPerms)
