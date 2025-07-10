@@ -8,7 +8,7 @@ trait HasPermissions
 {
     public function hasPermission(string $permission): bool
     {
-        $allpermissions = $this->allPermissions();
+        $allpermissions = $this->permissions();
 
         if ($allpermissions->contains('slug', '*')) {
             return true; // If any permission is '*', all permissions are granted
@@ -31,13 +31,23 @@ trait HasPermissions
         );
     }
 
-    public function permissions()
+    public function individualPermissions()
     {
         return $this->morphToMany(
             config('roles.models.permission'),
             'member',
             config('roles.table_names.permission_member', 'permission_member')
         );
+    }
+
+    public function permissions()
+    {
+        $rolePerms   = $this->rolePermissions()->get();
+        $directPerms = $this->permissions()->get();
+
+        return $rolePerms
+            ->merge($directPerms)
+            ->unique('id');
     }
 
     public function assignPermission($permission)
@@ -84,33 +94,5 @@ trait HasPermissions
         }
 
         return true;
-    }
-
-    /**
-     * Get all permissions directly assigned or inherited via roles.
-     *
-     * @return Collection
-     */
-    public function allPermissions()
-    {
-        // Directly assigned permissions
-        $direct = $this->permissions()->get();
-
-        // Permissions via roles (if the roles() relation exists)
-        if (method_exists($this, 'roles')) {
-            $rolePermissions = $this->roles()
-                ->with('permissions')
-                ->get()
-                ->pluck('permissions')
-                ->flatten();
-        } else {
-            $rolePermissions = collect();
-        }
-
-        // Merge and dedupe by 'id'
-        return $direct
-            ->merge($rolePermissions)
-            ->unique('id')
-            ->values();
     }
 }

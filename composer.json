@@ -54,11 +54,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload-dev": {
-        "psr-4": {
-            "Workbench\\App\\": "workbench/app/",
-            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
-        }
+        "psr-4": {}
     },
     "scripts": {
         "post-autoload-dump": [
@@ -75,6 +71,10 @@
         ],
         "lint": [
             "@php vendor/bin/pint --ansi"
+        ],
+        "test": [
+            "@clear",
+            "@php vendor/bin/phpunit"
         ]
     }
 }
