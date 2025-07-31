@@ -19,7 +19,10 @@ trait HasRoles
             config('roles.models.role', \Blax\Roles\Models\Role::class),
             'member',
             config('roles.table_names.role_members', 'role_members')
-        );
+        )->withPivot('expires_at', 'created_at', 'updated_at')
+            ->withTimestamps()
+            ->wherePivot('expires_at', '>', now())
+            ->orWhereNull('expires_at');
     }
 
     /**
