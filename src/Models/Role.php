@@ -21,6 +21,18 @@ class Role extends Model
         parent::__construct($attributes);
 
         $this->table = config('roles.table_names.roles') ?: parent::getTable();
+
+        static::creating(function ($model) {
+            $baseSlug = str()->slug($model->slug ?: $model->name);
+            $slug = $baseSlug;
+            $suffix = 1;
+
+            while (static::where('slug', $slug)->exists()) {
+                $slug = $baseSlug . '-' . $suffix++;
+            }
+
+            $model->slug = $slug;
+        });
     }
 
     public function members()
