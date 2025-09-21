@@ -55,7 +55,7 @@ trait HasRoles
      *
      * @return $this
      */
-    public function assignRole(string|Role $role)
+    public function assignRole(string|Role $role, int $max_times = 1)
     {
         if (is_string($role) && !is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
@@ -64,6 +64,13 @@ trait HasRoles
             ]);
         } elseif (is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        }
+
+        if ($max_times >= 0) {
+            $currentCount = $this->roles()->wherePivot('role_id', $role->id)->count();
+            if ($currentCount >= $max_times) {
+                return $this;
+            }
         }
 
         if ($role instanceof Role) {
