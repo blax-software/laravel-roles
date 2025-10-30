@@ -15,14 +15,18 @@ trait HasRoles
      */
     public function roles()
     {
+        $pivotTable = config('roles.table_names.role_member', 'role_members');
+
         return $this->morphToMany(
             config('roles.models.role', \Blax\Roles\Models\Role::class),
             'member',
-            config('roles.table_names.role_members', 'role_members')
+            $pivotTable
         )->withPivot('expires_at', 'created_at', 'updated_at')
             ->withTimestamps()
-            ->wherePivot('expires_at', '>', now())
-            ->orWhereNull('expires_at');
+            ->where(function ($q) use ($pivotTable) {
+                $q->wherePivot('expires_at', '>', now())
+                    ->orWhereNull($pivotTable . '.expires_at');
+            });
     }
 
     /**
@@ -138,6 +142,58 @@ trait HasRoles
         }
 
         $this->roles()->sync($roleIds);
+
+        return $this;
+    }
+
+    /**
+     * Extend the expiration of an existing role by the given hours, or attach the role
+     * with an expiration if the member does not already have it.
+     * If the existing role has no expiration (expires_at is null), it will be left as-is.
+     *
+     * @param int|string|Role $role
+     * @param int $hours
+     * @return $this
+     */
+    public function extendOrAddRole($role, $hours)
+    {
+        $hours = (int) $hours;
+        if ($hours <= 0) {
+            return $this;
+        }
+
+        // Resolve role
+        if (is_string($role) && !is_numeric($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
+                'name' => $role,
+                'slug' => str()->slug($role)
+            ]);
+        } elseif (is_numeric($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        } elseif (!$role instanceof Role) {
+            throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
+        }
+
+        if (!$role) {
+            return $this;
+        }
+
+        $roleMemberModel = config('roles.models.role_member', \Blax\Roles\Models\RoleMember::class);
+
+        $existing = $roleMemberModel::withoutGlobalScopes()
+            ->where('role_id', $role->id)
+            ->where('member_id', $this->getKey())
+            ->where('member_type', $this->getMorphClass())
+            ->first();
+
+        if ($existing) {
+            // Extend expiry. If it does not expire (null), leave it unchanged.
+            $existing->extendByHours($hours, false);
+        } else {
+            $this->roles()->attach($role->id, [
+                'expires_at' => now()->addHours($hours),
+            ]);
+        }
 
         return $this;
     }

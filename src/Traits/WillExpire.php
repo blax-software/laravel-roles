@@ -14,9 +14,22 @@ trait WillExpire
         });
     }
 
-
     public function isExpired(): bool
     {
         return $this->expires_at && $this->expires_at->isPast();
+    }
+
+    public function extendByHours(int $hours, bool $expire_if_null = false): void
+    {
+        if ($this->expires_at === null && !$expire_if_null) {
+            // Do not add expiration if it does not expire
+            return;
+        } elseif ($this->expires_at->isPast()) {
+            $this->expires_at = now()->addHours($hours);
+        } else {
+            $this->expires_at = $this->expires_at->addHours($hours);
+        }
+
+        $this->save();
     }
 }
