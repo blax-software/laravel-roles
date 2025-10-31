@@ -156,7 +156,7 @@ trait HasRoles
      * @param int $hours
      * @return $this
      */
-    public function extendOrAddRole($role, $hours)
+    public function extendOrAddRole(int|string|Role $role, int $hours)
     {
         $hours = (int) $hours;
         if ($hours <= 0) {
@@ -182,7 +182,7 @@ trait HasRoles
 
         $roleMemberModel = config('roles.models.role_member', \Blax\Roles\Models\RoleMember::class);
 
-        $existing = $roleMemberModel::withoutGlobalScopes()
+        $existing = $roleMemberModel
             ->where('role_id', $role->id)
             ->where('member_id', $this->getKey())
             ->where('member_type', $this->getMorphClass())
