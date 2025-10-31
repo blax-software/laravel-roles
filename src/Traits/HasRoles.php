@@ -24,7 +24,7 @@ trait HasRoles
         )->withPivot('expires_at', 'created_at', 'updated_at')
             ->withTimestamps()
             ->where(function ($q) use ($pivotTable) {
-                $q->wherePivot('expires_at', '>', now())
+                $q->where($pivotTable . '.expires_at', '>', now())
                     ->orWhereNull($pivotTable . '.expires_at');
             });
     }
@@ -122,6 +122,7 @@ trait HasRoles
             if (is_string($role) && !is_numeric($role)) {
                 $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
                     'name' => $role,
+                ], [
                     'slug' => str()->slug($role)
                 ]);
             } elseif (is_numeric($role)) {
@@ -166,6 +167,7 @@ trait HasRoles
         if (is_string($role) && !is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
                 'name' => $role,
+            ], [
                 'slug' => str()->slug($role)
             ]);
         } elseif (is_numeric($role)) {
