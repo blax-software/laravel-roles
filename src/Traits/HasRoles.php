@@ -182,8 +182,7 @@ trait HasRoles
 
         $roleMemberModel = config('roles.models.role_member', \Blax\Roles\Models\RoleMember::class);
 
-        $existing = $roleMemberModel
-            ->where('role_id', $role->id)
+        $existing = $roleMemberModel::where('role_id', $role->id)
             ->where('member_id', $this->getKey())
             ->where('member_type', $this->getMorphClass())
             ->first();
