@@ -50,6 +50,9 @@ trait HasPermissions
         $roleMemberTable = config('roles.table_names.role_member', 'role_members');
         $permMemberTable = config('roles.table_names.permission_member', 'permission_members');
 
+        // Get the actual morph class that Role instances use (may differ from config if app extends vendor model)
+        $roleMorphClass = (new $roleModel)->getMorphClass();
+
         // Get role IDs this entity belongs to (via role_members)
         $roleIds = DB::table($roleMemberTable)
             ->where('member_id', $this->getKey())
@@ -66,7 +69,7 @@ trait HasPermissions
         // Get permission IDs assigned to those roles (roles are members in permission_members)
         $permissionIds = DB::table($permMemberTable)
             ->whereIn('member_id', $roleIds)
-            ->where('member_type', $roleModel)
+            ->where('member_type', $roleMorphClass)
             ->where(function ($q) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
