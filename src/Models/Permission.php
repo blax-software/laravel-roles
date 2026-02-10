@@ -20,22 +20,25 @@ class Permission extends Model
 
     public function usages()
     {
-        return $this->hasMany(config('roles.table_names.permission_usage'));
+        return $this->hasMany(config('roles.models.permission_usage'));
     }
 
+    /**
+     * Get all roles that have this permission (via permission_members where member_type is Role).
+     */
     public function roles()
     {
-        return $this->morphToMany(
-            config('roles.table_names.role'),
+        return $this->morphedByMany(
+            config('roles.models.role'),
             'member',
-            config('roles.table_names.permission_member'),
+            config('roles.table_names.permission_member', 'permission_members'),
             'permission_id',
             'member_id'
-        )->where('member_type', config('roles.table_names.role'));
+        );
     }
 
     public function members()
     {
-        return $this->hasMany(config('roles.table_names.permission_member'));
+        return $this->hasMany(config('roles.models.permission_member'), 'permission_id');
     }
 }

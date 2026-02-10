@@ -3,46 +3,101 @@
 namespace Blax\Roles\Traits;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 trait HasPermissions
 {
+    /**
+     * Check if the entity has a specific permission.
+     *
+     * Supports hierarchical matching: having permission 'lection' also
+     * grants 'lection.45', 'lection.foo.bar', etc. (parent acts as wildcard).
+     */
     public function hasPermission(string $permission): bool
     {
         $allpermissions = $this->permissions();
 
+        // Wildcard: '*' grants everything
         if ($allpermissions->contains('slug', '*')) {
-            return true; // If any permission is '*', all permissions are granted
+            return true;
         }
 
         return $allpermissions->contains(function ($perm) use ($permission) {
-            return $perm->slug === $permission || $perm->name === $permission;
+            // Exact match
+            if ($perm->slug === $permission) {
+                return true;
+            }
+
+            // Hierarchical: permission 'lection' grants 'lection.45', 'lection.foo.bar', etc.
+            if (str_starts_with($permission, $perm->slug . '.')) {
+                return true;
+            }
+
+            return false;
         });
     }
 
-    public function rolePermissions()
+    /**
+     * Get permissions inherited through roles.
+     *
+     * Resolves: entity → role_members (get role IDs) → permission_members
+     * where member_type is a Role → permissions.
+     */
+    public function rolePermissions(): Collection
     {
-        return $this->hasManyThrough(
-            config('roles.models.permission'),
-            config('roles.models.role_member'),
-            'member_id',
-            'id',
-            'id',
-            'role_id'
-        );
+        $roleModel = config('roles.models.role');
+        $permissionModel = config('roles.models.permission');
+        $roleMemberTable = config('roles.table_names.role_member', 'role_members');
+        $permMemberTable = config('roles.table_names.permission_member', 'permission_members');
+
+        // Get role IDs this entity belongs to (via role_members)
+        $roleIds = DB::table($roleMemberTable)
+            ->where('member_id', $this->getKey())
+            ->where('member_type', $this->getMorphClass())
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->pluck('role_id');
+
+        if ($roleIds->isEmpty()) {
+            return collect();
+        }
+
+        // Get permission IDs assigned to those roles (roles are members in permission_members)
+        $permissionIds = DB::table($permMemberTable)
+            ->whereIn('member_id', $roleIds)
+            ->where('member_type', $roleModel)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->pluck('permission_id')
+            ->unique();
+
+        if ($permissionIds->isEmpty()) {
+            return collect();
+        }
+
+        return $permissionModel::whereIn('id', $permissionIds)->get();
     }
 
+    /**
+     * Get permissions directly assigned to this entity (via permission_members morphToMany).
+     */
     public function individualPermissions()
     {
         return $this->morphToMany(
             config('roles.models.permission'),
             'member',
-            config('roles.table_names.permission_member', 'permission_member')
+            config('roles.table_names.permission_member', 'permission_members')
         );
     }
 
-    public function permissions()
+    /**
+     * Get all permissions: role-based + directly assigned, deduplicated.
+     */
+    public function permissions(): Collection
     {
-        $rolePerms   = $this->rolePermissions()->get();
+        $rolePerms   = $this->rolePermissions();
         $directPerms = $this->individualPermissions()->get();
 
         return $rolePerms
@@ -62,19 +117,13 @@ trait HasPermissions
             ]);
         }
 
-        if ($permission instanceof $permission_class) {
-            // Already a Permission instance
-        } else {
+        if (! ($permission instanceof $permission_class)) {
             throw new \InvalidArgumentException('Permission must be a string, numeric ID, or an instance of Permission.');
         }
 
-        if ($permission) {
-            $this->permissions()->syncWithoutDetaching($permission);
+        $this->individualPermissions()->syncWithoutDetaching($permission);
 
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     public function removePermission($permission): bool
@@ -88,9 +137,7 @@ trait HasPermissions
         }
 
         if ($permission) {
-            $this->permissions()->detach($permission);
-
-            return true;
+            $this->individualPermissions()->detach($permission);
         }
 
         return true;
