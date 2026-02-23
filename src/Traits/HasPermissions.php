@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 trait HasPermissions
 {
+    use HasAccess;
     /**
      * Check if the entity has a specific permission.
      *

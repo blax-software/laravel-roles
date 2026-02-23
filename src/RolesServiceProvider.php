@@ -48,6 +48,7 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
 
         $this->publishes([
             __DIR__ . '/../database/migrations/create_blax_role_tables.php.stub' => $this->getMigrationFileName('create_blax_role_tables.php'),
+            __DIR__ . '/../database/migrations/create_blax_access_table.php.stub' => $this->getMigrationFileName('create_blax_access_table.php'),
         ], 'roles-migrations');
     }
 
@@ -73,5 +74,6 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->app->bind(\Blax\Roles\Models\Permission::class, fn($app) => $app->make($app->config['roles.models.permission']));
         $this->app->bind(\Blax\Roles\Models\PermissionUsage::class, fn($app) => $app->make($app->config['roles.models.permission_usage']));
         $this->app->bind(\Blax\Roles\Models\PermissionMember::class, fn($app) => $app->make($app->config['roles.models.permission_member']));
+        $this->app->bind(\Blax\Roles\Models\Access::class, fn($app) => $app->make($app->config['roles.models.access']));
     }
 }

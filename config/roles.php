@@ -8,6 +8,7 @@ return [
         'permission' => \Blax\Roles\Models\Permission::class,
         'permission_usage' => \Blax\Roles\Models\PermissionUsage::class,
         'permission_member' => \Blax\Roles\Models\PermissionMember::class,
+        'access' => \Blax\Roles\Models\Access::class,
     ],
 
     'table_names' => [
@@ -17,6 +18,7 @@ return [
         'roles' => 'roles',
         'role_member' => 'role_members',
         'role_permission' => 'role_permissions',
+        'accesses' => 'accesses',
     ],
 
 ];

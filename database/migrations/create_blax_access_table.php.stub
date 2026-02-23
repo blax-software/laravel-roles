@@ -1,0 +1,36 @@
+<?php
+
+namespace Blax\Roles\Migrations;
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create(config('roles.table_names.accesses', 'accesses'), function (Blueprint $table) {
+            $table->id();
+            $table->morphs('entity');        // Who has the access (User, Role, Permission)
+            $table->morphs('accessible');    // What they have access to (Lection, Scenario, etc.)
+            $table->json('context')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            // Prevent duplicate access entries
+            $table->unique(['entity_type', 'entity_id', 'accessible_type', 'accessible_id'], 'access_unique');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists(config('roles.table_names.accesses', 'accesses'));
+    }
+};

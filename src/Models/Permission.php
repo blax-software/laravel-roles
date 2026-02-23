@@ -2,10 +2,12 @@
 
 namespace Blax\Roles\Models;
 
+use Blax\Roles\Traits\HasAccess;
 use Illuminate\Database\Eloquent\Model;
 
 class Permission extends Model
 {
+    use HasAccess;
     protected $fillable = [
         'slug',
         'description',
