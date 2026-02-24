@@ -99,10 +99,12 @@ trait HasRoles
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::where('slug', $role)->first();
         } elseif (is_numeric($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
-        } elseif ($role instanceof Role) {
-            $this->roles()->detach($role);
-        } else {
+        } elseif (!$role instanceof Role) {
             throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
+        }
+
+        if ($role) {
+            $this->roles()->detach($role);
         }
 
         return $this;

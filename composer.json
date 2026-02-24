@@ -54,7 +54,11 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload-dev": {
-        "psr-4": {}
+        "psr-4": {
+            "Blax\\Roles\\Tests\\": "tests",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/"
+        }
     },
     "scripts": {
         "post-autoload-dump": [
