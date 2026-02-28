@@ -78,16 +78,20 @@ trait HasAccess
     /**
      * Grant this entity access to a specific model.
      *
+     * Uses updateOrCreate so that re-granting access (e.g., after a renewal
+     * purchase) refreshes the expires_at and context even when an existing
+     * (possibly expired) record already exists.
+     *
      * @param  Model  $accessible  The target model
      * @param  array|null  $context  Optional JSON context
      * @param  Carbon|null  $expiresAt  Optional expiration
-     * @return Model  The created or existing Access entry
+     * @return Model  The created or updated Access entry
      */
     public function grantAccess(Model $accessible, ?array $context = null, ?Carbon $expiresAt = null): Model
     {
         $accessModel = config('roles.models.access');
 
-        return $accessModel::firstOrCreate([
+        return $accessModel::updateOrCreate([
             'entity_type' => $this->getMorphClass(),
             'entity_id' => $this->getKey(),
             'accessible_type' => $accessible->getMorphClass(),
