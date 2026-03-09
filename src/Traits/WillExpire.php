@@ -24,7 +24,7 @@ trait WillExpire
         if ($this->expires_at === null && !$expire_if_null) {
             // Do not add expiration if it does not expire
             return;
-        } elseif ($this->expires_at->isPast()) {
+        } elseif ($this->expires_at === null || $this->expires_at->isPast()) {
             $this->expires_at = now()->addHours($hours);
         } else {
             $this->expires_at = $this->expires_at->addHours($hours);
