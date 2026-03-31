@@ -21,7 +21,7 @@ trait HasRoles
             config('roles.models.role', \Blax\Roles\Models\Role::class),
             'member',
             $pivotTable
-        )->withPivot('expires_at', 'created_at', 'updated_at')
+        )->withPivot('expires_at', 'context', 'created_at', 'updated_at')
             ->withTimestamps()
             ->where(function ($q) use ($pivotTable) {
                 $q->where($pivotTable . '.expires_at', '>', now())
@@ -195,6 +195,71 @@ trait HasRoles
         } else {
             $this->roles()->attach($role->id, [
                 'expires_at' => now()->addHours($hours),
+            ]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Extend or create a role membership, scoped by an origin identifier stored in `context`.
+     *
+     * This allows multiple independent role_member records for the same role+user (e.g.,
+     * one from a subscription and one from a day-pass purchase). Each origin tracks its
+     * own expiry independently.
+     *
+     * - If an active (non-expired) record with the same origin exists → extend it
+     * - If only expired records exist for this origin, or no record exists → create new
+     *
+     * @param int|string|Role $role         The role to assign/extend
+     * @param int $hours                    Duration in hours
+     * @param string $originName            Human-readable label (e.g., product name)
+     * @param string $originValue           Lookup key (e.g., "ProductPrice:uuid")
+     * @param bool $forceExpiry             If true, set expiration even on records with null expires_at
+     * @return $this
+     */
+    public function extendOrAddRoleByOrigin(int|string|Role $role, int $hours, string $originName, string $originValue, bool $forceExpiry = false)
+    {
+        $hours = (int) $hours;
+        if ($hours <= 0) {
+            return $this;
+        }
+
+        // Resolve role
+        if (is_string($role) && !is_numeric($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
+                'name' => $role,
+            ], [
+                'slug' => str()->slug($role)
+            ]);
+        } elseif (is_numeric($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        } elseif (!$role instanceof Role) {
+            throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
+        }
+
+        if (!$role) {
+            return $this;
+        }
+
+        $roleMemberModel = config('roles.models.role_member', \Blax\Roles\Models\RoleMember::class);
+
+        // Look for an active (non-expired) record from the same origin
+        $existing = $roleMemberModel::where('role_id', $role->id)
+            ->where('member_id', $this->getKey())
+            ->where('member_type', $this->getMorphClass())
+            ->whereJsonContains('context->origin_value', $originValue)
+            ->first();
+
+        if ($existing) {
+            $existing->extendByHours($hours, $forceExpiry);
+        } else {
+            $this->roles()->attach($role->id, [
+                'expires_at' => now()->addHours($hours),
+                'context' => json_encode([
+                    'origin_name' => $originName,
+                    'origin_value' => $originValue,
+                ]),
             ]);
         }
 

@@ -4,4 +4,4 @@ vendor
 composer.lock
 .idea/
 workbench
-.phpunit.result.cache
+.phpunit.*

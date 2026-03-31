@@ -490,4 +490,148 @@ class HasRolesTest extends TestCase
         $this->assertEquals('admin', $role1->slug);
         $this->assertEquals('admin-1', $role2->slug);
     }
+
+    // ─── extendOrAddRoleByOrigin ────────────────────────────────
+
+    public function test_extend_by_origin_creates_new_record_with_context(): void
+    {
+        $user = User::factory()->create();
+        $role = Role::create(['name' => 'Premium', 'slug' => 'premium']);
+
+        $user->extendOrAddRoleByOrigin($role, 24, 'Monthly Sub', 'ProductPrice:abc-123');
+
+        $membership = DB::table(config('roles.table_names.role_member'))
+            ->where('role_id', $role->id)
+            ->where('member_id', $user->id)
+            ->first();
+
+        $this->assertNotNull($membership);
+        $context = json_decode($membership->context, true);
+        $this->assertEquals('Monthly Sub', $context['origin_name']);
+        $this->assertEquals('ProductPrice:abc-123', $context['origin_value']);
+    }
+
+    public function test_extend_by_origin_extends_active_record_from_same_origin(): void
+    {
+        $user = User::factory()->create();
+        $role = Role::create(['name' => 'Premium', 'slug' => 'premium']);
+
+        // First purchase — creates record
+        $user->extendOrAddRoleByOrigin($role, 24, 'Monthly Sub', 'ProductPrice:abc-123');
+
+        // Second purchase from same price — should extend, not create new
+        $user->extendOrAddRoleByOrigin($role, 24, 'Monthly Sub', 'ProductPrice:abc-123');
+
+        $count = DB::table(config('roles.table_names.role_member'))
+            ->where('role_id', $role->id)
+            ->where('member_id', $user->id)
+            ->count();
+
+        $this->assertEquals(1, $count);
+
+        // Should be ~48 hours from now
+        $membership = DB::table(config('roles.table_names.role_member'))
+            ->where('role_id', $role->id)
+            ->where('member_id', $user->id)
+            ->first();
+
+        $expiresAt = \Carbon\Carbon::parse($membership->expires_at);
+        $this->assertTrue($expiresAt->gt(now()->addHours(40)));
+    }
+
+    public function test_extend_by_origin_creates_separate_records_for_different_origins(): void
+    {
+        $user = User::factory()->create();
+        $role = Role::create(['name' => 'Premium', 'slug' => 'premium']);
+
+        // Subscription creates one record
+        $user->extendOrAddRoleByOrigin($role, 720, 'Monthly Sub', 'ProductPrice:sub-monthly');
+
+        // Day pass creates a separate record
+        $user->extendOrAddRoleByOrigin($role, 24, 'Day Pass', 'ProductPrice:day-pass');
+
+        $count = DB::table(config('roles.table_names.role_member'))
+            ->where('role_id', $role->id)
+            ->where('member_id', $user->id)
+            ->count();
+
+        // Both should coexist
+        $this->assertEquals(2, $count);
+
+        // User should have the role
+        $this->assertTrue($user->hasRole($role));
+    }
+
+    public function test_extend_by_origin_creates_new_record_when_previous_expired(): void
+    {
+        $user = User::factory()->create();
+        $role = Role::create(['name' => 'Premium', 'slug' => 'premium']);
+
+        // Insert an expired record from a subscription
+        DB::table(config('roles.table_names.role_member'))->insert([
+            'role_id' => $role->id,
+            'member_id' => $user->id,
+            'member_type' => $user->getMorphClass(),
+            'expires_at' => now()->subDay(),
+            'context' => json_encode(['origin_name' => 'Monthly Sub', 'origin_value' => 'ProductPrice:sub-monthly']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Same price triggers again — expired record should NOT be extended, new one created
+        $user->extendOrAddRoleByOrigin($role, 720, 'Monthly Sub', 'ProductPrice:sub-monthly');
+
+        $count = DB::table(config('roles.table_names.role_member'))
+            ->where('role_id', $role->id)
+            ->where('member_id', $user->id)
+            ->count();
+
+        // Old expired + new active = 2 records
+        $this->assertEquals(2, $count);
+
+        // User should have the role (active one)
+        $this->assertTrue($user->hasRole($role));
+    }
+
+    public function test_extend_by_origin_with_zero_hours_does_nothing(): void
+    {
+        $user = User::factory()->create();
+        $role = Role::create(['name' => 'Zero', 'slug' => 'zero']);
+
+        $user->extendOrAddRoleByOrigin($role, 0, 'Test', 'ProductPrice:test');
+
+        $count = DB::table(config('roles.table_names.role_member'))
+            ->where('role_id', $role->id)
+            ->where('member_id', $user->id)
+            ->count();
+
+        $this->assertEquals(0, $count);
+    }
+
+    public function test_extend_by_origin_force_expiry_sets_expiration_on_null(): void
+    {
+        $user = User::factory()->create();
+        $role = Role::create(['name' => 'Perm', 'slug' => 'perm']);
+
+        // Insert a permanent (null expires_at) record with matching origin
+        DB::table(config('roles.table_names.role_member'))->insert([
+            'role_id' => $role->id,
+            'member_id' => $user->id,
+            'member_type' => $user->getMorphClass(),
+            'expires_at' => null,
+            'context' => json_encode(['origin_name' => 'Sub', 'origin_value' => 'ProductPrice:sub']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // With forceExpiry=true, should set expiration even on null expires_at
+        $user->extendOrAddRoleByOrigin($role, 24, 'Sub', 'ProductPrice:sub', true);
+
+        $membership = DB::table(config('roles.table_names.role_member'))
+            ->where('role_id', $role->id)
+            ->where('member_id', $user->id)
+            ->first();
+
+        $this->assertNotNull($membership->expires_at);
+    }
 }
