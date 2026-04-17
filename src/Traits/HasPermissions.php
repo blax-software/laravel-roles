@@ -93,7 +93,7 @@ trait HasPermissions
             config('roles.models.permission'),
             'member',
             config('roles.table_names.permission_member', 'permission_members')
-        );
+        )->using(config('roles.models.permission_member', \Blax\Roles\Models\PermissionMember::class));
     }
 
     /**

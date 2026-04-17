@@ -3,11 +3,12 @@
 namespace Blax\Roles\Models;
 
 use Blax\Roles\Traits\WillExpire;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\MorphPivot;
 
-class RoleMember extends Model
+class RoleMember extends MorphPivot
 {
-    use WillExpire;
+    use HasUuids, WillExpire;
 
     protected $fillable = [
         'role_id',

@@ -2,10 +2,12 @@
 
 namespace Blax\Roles\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class PermissionUsage extends Model
 {
+    use HasUuids;
     protected $fillable = [
         'permission_id',
         'usage',

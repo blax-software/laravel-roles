@@ -2,10 +2,12 @@
 
 namespace Blax\Roles\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Access extends Model
 {
+    use HasUuids;
     protected $fillable = [
         'entity_id',
         'entity_type',

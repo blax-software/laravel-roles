@@ -3,11 +3,12 @@
 namespace Blax\Roles\Models;
 
 use Blax\Roles\Traits\HasPermissions;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    use HasPermissions;
+    use HasPermissions, HasUuids;
 
     protected $fillable = [
         'parent_id',

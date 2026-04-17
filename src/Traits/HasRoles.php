@@ -21,7 +21,8 @@ trait HasRoles
             config('roles.models.role', \Blax\Roles\Models\Role::class),
             'member',
             $pivotTable
-        )->withPivot('expires_at', 'context', 'created_at', 'updated_at')
+        )->using(config('roles.models.role_member', \Blax\Roles\Models\RoleMember::class))
+            ->withPivot('expires_at', 'context', 'created_at', 'updated_at')
             ->withTimestamps()
             ->where(function ($q) use ($pivotTable) {
                 $q->where($pivotTable . '.expires_at', '>', now())
