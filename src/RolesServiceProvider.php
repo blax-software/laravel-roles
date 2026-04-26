@@ -26,7 +26,23 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
     {
         $this->offerPublishing();
 
+        $this->registerMigrations();
+
         $this->registerModelBindings();
+    }
+
+    /**
+     * Auto-load the package's migrations so fresh installs work without
+     * publishing. Disabled via `roles.run_migrations = false` for projects
+     * that prefer to publish + manage migrations themselves.
+     */
+    protected function registerMigrations(): void
+    {
+        if (! config('roles.run_migrations', true)) {
+            return;
+        }
+
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
     }
 
     /**
@@ -46,25 +62,17 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
             __DIR__ . '/../config/roles.php' => $this->app->configPath('roles.php'),
         ], 'roles-config');
 
-        $this->publishes([
-            __DIR__ . '/../database/migrations/create_blax_role_tables.php.stub' => $this->getMigrationFileName('create_blax_role_tables.php'),
-            __DIR__ . '/../database/migrations/create_blax_access_table.php.stub' => $this->getMigrationFileName('create_blax_access_table.php'),
-        ], 'roles-migrations');
-    }
-
-    /**
-     * Returns existing migration file if found, else uses the current timestamp.
-     */
-    protected function getMigrationFileName(string $migrationFileName): string
-    {
-        $timestamp = date('Y_m_d_His');
-
-        $filesystem = $this->app->make(\Illuminate\Filesystem\Filesystem::class);
-
-        return \Illuminate\Support\Collection::make([$this->app->databasePath() . DIRECTORY_SEPARATOR . 'migrations' . DIRECTORY_SEPARATOR])
-            ->flatMap(fn($path) => $filesystem->glob($path . '*_' . $migrationFileName))
-            ->push($this->app->databasePath() . "/migrations/{$timestamp}_{$migrationFileName}")
-            ->first();
+        // Publish migrations to the host project keeping the same filename as
+        // the source file. That filename is what Laravel's migrator records in
+        // the `migrations` table, so any migration that has already run via
+        // auto-load will be marked as run for the published copy too — no
+        // duplicate execution.
+        $migrationsPath = __DIR__ . '/../database/migrations';
+        $publishMap = [];
+        foreach (glob($migrationsPath . '/*.php') as $sourcePath) {
+            $publishMap[$sourcePath] = $this->app->databasePath('migrations/' . basename($sourcePath));
+        }
+        $this->publishes($publishMap, 'roles-migrations');
     }
 
     protected function registerModelBindings(): void

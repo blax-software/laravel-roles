@@ -30,6 +30,9 @@ class HasAccessTest extends TestCase
             'database' => ':memory:',
             'prefix' => '',
         ]);
+        // Tests use workbench-specific UUID-aware migrations; disable the
+        // package's auto-load so the same tables aren't created twice.
+        $app['config']->set('roles.run_migrations', false);
     }
 
     protected function defineDatabaseMigrations(): void
@@ -228,6 +231,7 @@ class HasAccessTest extends TestCase
 
         // Manually insert expired role membership
         DB::table(config('roles.table_names.role_member'))->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
             'role_id' => $role->id,
             'member_id' => $user->id,
             'member_type' => $user->getMorphClass(),

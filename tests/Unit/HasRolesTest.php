@@ -27,6 +27,7 @@ class HasRolesTest extends TestCase
             'database' => ':memory:',
             'prefix' => '',
         ]);
+        $app['config']->set('roles.run_migrations', false);
     }
 
     protected function defineDatabaseMigrations(): void

@@ -78,17 +78,27 @@ trait HasAccess
     /**
      * Grant this entity access to a specific model.
      *
-     * Uses updateOrCreate so that re-granting access (e.g., after a renewal
-     * purchase) refreshes the expires_at and context even when an existing
-     * (possibly expired) record already exists.
+     * Idempotent per (entity, accessible, source) tuple — re-granting with the
+     * same source refreshes `expires_at` and `context`. Different sources for
+     * the same accessible coexist as separate rows, so the holder doesn't lose
+     * access when one source goes away (e.g. a subscription ends but a lifetime
+     * purchase remains).
      *
      * @param  Model  $accessible  The target model
      * @param  array|null  $context  Optional JSON context
      * @param  Carbon|null  $expiresAt  Optional expiration
+     * @param  Model|null  $source  Optional source model (Subscription, Order, …)
+     *                              that conferred this access. When the source
+     *                              is removed (see RevokesAccessOnDelete or
+     *                              Access::revokeBySource), this row is cleaned up.
      * @return Model  The created or updated Access entry
      */
-    public function grantAccess(Model $accessible, ?array $context = null, ?Carbon $expiresAt = null): Model
-    {
+    public function grantAccess(
+        Model $accessible,
+        ?array $context = null,
+        ?Carbon $expiresAt = null,
+        ?Model $source = null,
+    ): Model {
         $accessModel = config('roles.models.access');
 
         return $accessModel::updateOrCreate([
@@ -96,6 +106,8 @@ trait HasAccess
             'entity_id' => $this->getKey(),
             'accessible_type' => $accessible->getMorphClass(),
             'accessible_id' => $accessible->getKey(),
+            'source_type' => $source?->getMorphClass(),
+            'source_id' => $source?->getKey(),
         ], [
             'context' => $context,
             'expires_at' => $expiresAt,
@@ -105,27 +117,41 @@ trait HasAccess
     /**
      * Revoke this entity's access to a specific model.
      *
+     * If $source is provided, only the row matching that exact source is
+     * removed; other source-bound or null-source grants for the same
+     * accessible are left intact. Pass $source = null (default) to revoke
+     * every grant for this (entity, accessible).
+     *
      * @param  string|Model  $accessible  Model instance or class name
      * @param  int|string|null  $id  Required when $accessible is a class name
+     * @param  Model|null  $source  Optional source model to scope the revoke to
      * @return int  Number of deleted access entries
      */
-    public function revokeAccess(string|Model $accessible, int|string|null $id = null): int
+    public function revokeAccess(string|Model $accessible, int|string|null $id = null, ?Model $source = null): int
     {
         [$accessibleType, $accessibleId] = $this->resolveAccessibleArguments($accessible, $id);
 
-        return $this->accesses()
+        $query = $this->accesses()
             ->where('accessible_type', $accessibleType)
-            ->where('accessible_id', $accessibleId)
-            ->delete();
+            ->where('accessible_id', $accessibleId);
+
+        if ($source !== null) {
+            $query->where('source_type', $source->getMorphClass())
+                ->where('source_id', $source->getKey());
+        }
+
+        return $query->delete();
     }
 
     /**
-     * Revoke all direct accesses for this entity, optionally filtered by accessible type.
+     * Revoke all direct accesses for this entity, optionally filtered by
+     * accessible type and/or source.
      *
      * @param  string|null  $accessibleType  Optional model class to filter by
+     * @param  Model|null  $source  Optional source model to filter by
      * @return int  Number of deleted access entries
      */
-    public function revokeAllAccess(?string $accessibleType = null): int
+    public function revokeAllAccess(?string $accessibleType = null, ?Model $source = null): int
     {
         $query = $this->accesses();
 
@@ -134,7 +160,25 @@ trait HasAccess
             $query->where('accessible_type', $morphClass);
         }
 
+        if ($source !== null) {
+            $query->where('source_type', $source->getMorphClass())
+                ->where('source_id', $source->getKey());
+        }
+
         return $query->delete();
+    }
+
+    /**
+     * Revoke every direct access on this entity that was conferred by the
+     * given source. Useful when a single subscription should be torn down
+     * while leaving lifetime / manual grants alone.
+     */
+    public function revokeAccessBySource(Model $source): int
+    {
+        return $this->accesses()
+            ->where('source_type', $source->getMorphClass())
+            ->where('source_id', $source->getKey())
+            ->delete();
     }
 
     /**
@@ -205,24 +249,40 @@ trait HasAccess
      * Replaces all direct accesses for the given type with the new set.
      * Only affects accesses owned by THIS entity (not role/permission inherited ones).
      *
+     * If $source is provided, the sync is scoped to that source — only rows
+     * with matching source_type/source_id are removed/replaced, leaving rows
+     * from other sources (or null source) untouched. This lets a subscription
+     * refresh its grants without clobbering a user's lifetime purchases.
+     *
      * @param  string  $accessibleType  The model class
      * @param  array  $ids  Array of model IDs to sync
      * @param  array|null  $context  Optional context for new entries
      * @param  Carbon|null  $expiresAt  Optional expiration for new entries
+     * @param  Model|null  $source  Optional source scoping
      */
-    public function syncAccess(string $accessibleType, array $ids, ?array $context = null, ?Carbon $expiresAt = null): void
-    {
+    public function syncAccess(
+        string $accessibleType,
+        array $ids,
+        ?array $context = null,
+        ?Carbon $expiresAt = null,
+        ?Model $source = null,
+    ): void {
         $morphClass = (new $accessibleType)->getMorphClass();
 
-        // Remove accesses not in the new set
-        $this->accesses()
+        $scoped = fn($q) => $source
+            ? $q->where('source_type', $source->getMorphClass())
+                ->where('source_id', $source->getKey())
+            : $q->whereNull('source_type')->whereNull('source_id');
+
+        // Remove accesses not in the new set (within this source scope)
+        $scoped($this->accesses()
             ->where('accessible_type', $morphClass)
-            ->whereNotIn('accessible_id', $ids)
+            ->whereNotIn('accessible_id', $ids))
             ->delete();
 
-        // Add missing accesses
-        $existing = $this->accesses()
-            ->where('accessible_type', $morphClass)
+        // Add missing accesses (within this source scope)
+        $existing = $scoped($this->accesses()
+            ->where('accessible_type', $morphClass))
             ->pluck('accessible_id')
             ->toArray();
 
@@ -232,6 +292,8 @@ trait HasAccess
             $this->accesses()->create([
                 'accessible_type' => $morphClass,
                 'accessible_id' => $id,
+                'source_type' => $source?->getMorphClass(),
+                'source_id' => $source?->getKey(),
                 'context' => $context,
                 'expires_at' => $expiresAt,
             ]);
