@@ -83,5 +83,6 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->app->bind(\Blax\Roles\Models\PermissionUsage::class, fn($app) => $app->make($app->config['roles.models.permission_usage']));
         $this->app->bind(\Blax\Roles\Models\PermissionMember::class, fn($app) => $app->make($app->config['roles.models.permission_member']));
         $this->app->bind(\Blax\Roles\Models\Access::class, fn($app) => $app->make($app->config['roles.models.access']));
+        $this->app->bind(\Blax\Roles\Models\RequiredAccess::class, fn($app) => $app->make($app->config['roles.models.required_access']));
     }
 }

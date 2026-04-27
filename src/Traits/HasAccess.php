@@ -322,8 +322,11 @@ trait HasAccess
     /**
      * Get role IDs for resolving access through roles.
      * Returns null if this model doesn't use roles.
+     *
+     * Public so other access-resolution code (e.g. HasRequiredAccess) can
+     * reuse the same logic when building cross-table queries.
      */
-    protected function resolveAccessRoleIds(): ?Collection
+    public function resolveAccessRoleIds(): ?Collection
     {
         if (! method_exists($this, 'roles')) {
             return null;
@@ -344,8 +347,11 @@ trait HasAccess
     /**
      * Get permission IDs for resolving access through permissions.
      * Returns null if this model doesn't use permissions.
+     *
+     * Public so other access-resolution code (e.g. HasRequiredAccess) can
+     * reuse the same logic when building cross-table queries.
      */
-    protected function resolveAccessPermissionIds(): ?Collection
+    public function resolveAccessPermissionIds(): ?Collection
     {
         if (! method_exists($this, 'permissions')) {
             return null;

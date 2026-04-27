@@ -26,6 +26,7 @@ return [
         'permission_usage' => \Blax\Roles\Models\PermissionUsage::class,
         'permission_member' => \Blax\Roles\Models\PermissionMember::class,
         'access' => \Blax\Roles\Models\Access::class,
+        'required_access' => \Blax\Roles\Models\RequiredAccess::class,
     ],
 
     'table_names' => [
@@ -36,6 +37,7 @@ return [
         'role_member' => 'role_members',
         'role_permission' => 'role_permissions',
         'accesses' => 'accesses',
+        'required_accesses' => 'required_accesses',
     ],
 
 ];
