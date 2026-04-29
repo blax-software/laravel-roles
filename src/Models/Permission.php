@@ -37,7 +37,7 @@ class Permission extends Model
             config('roles.table_names.permission_member', 'permission_members'),
             'permission_id',
             'member_id'
-        );
+        )->using(config('roles.models.permission_member', \Blax\Roles\Models\PermissionMember::class));
     }
 
     public function members()
