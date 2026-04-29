@@ -36,6 +36,12 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->registerMigrations();
 
         $this->registerModelBindings();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Blax\Roles\Console\DropUuidMigrationBackupTablesCommand::class,
+            ]);
+        }
     }
 
     /**

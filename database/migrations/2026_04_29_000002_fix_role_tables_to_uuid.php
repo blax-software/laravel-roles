@@ -18,27 +18,52 @@ use Illuminate\Support\Str;
  * `HasUuids`. So every insert blew up with
  *     "Incorrect integer value: '<uuid>' for column 'id'"
  *
- * On installs that ran the buggy migrations, the tables exist with
- * bigint keys. Some hosts have data inside (e.g. roles seeded by app
- * code that bypassed the model insert path). This migration converts
- * those tables in place: keeps the data, swaps PK + FK columns to
- * CHAR(36), and rebuilds all foreign-key constraints.
+ * Conversion is non-destructive:
+ *   1. Each affected table is snapshotted into a sibling
+ *      `<table>_bak_bigint_uuid_2026_04_29` with `CREATE TABLE LIKE` +
+ *      `INSERT … SELECT *` BEFORE any DDL runs.
+ *   2. PK and FK columns are swapped in place — rows are never deleted,
+ *      only their `id` / `*_id` columns are replaced with UUIDs while
+ *      every reference is rewritten to point at the new id. No
+ *      `DROP TABLE`, no truncation, no row-level mutation other than
+ *      the id column rewrite.
+ *   3. After conversion, row counts are compared against the snapshot
+ *      and FK integrity is verified (no orphan refs). Any mismatch
+ *      throws and the snapshot tables stay around for the operator
+ *      to recover from with a manual `INSERT … SELECT` + manual cleanup.
+ *
+ * The snapshot tables are intentionally NOT auto-dropped on success.
+ * After verifying that everything works on the application side, drop
+ * them manually with the `roles:drop-uuid-migration-backup-tables`
+ * command shipped alongside this migration.
  *
  * Idempotent. Each phase checks whether the conversion has already
- * been applied (by reading the column type from
- * INFORMATION_SCHEMA) and skips when the schema is already correct,
- * so re-running is safe and fresh installs (whose newer create
- * migration already produces UUIDs) take a fast no-op path.
+ * been applied and skips when the schema is already correct, so
+ * re-running is safe and fresh installs (whose newer create migration
+ * already produces UUIDs) take a fast no-op path that doesn't even
+ * create snapshot tables.
  *
  * Caveats:
- *   - DDL is auto-commit on MySQL; failures mid-run leave a partial
- *     conversion. Take a backup before deploying.
+ *   - MySQL only. SQLite hosts get the correct schema directly from
+ *     the create migration; the multi-table UPDATE/ALTER syntax we
+ *     use here isn't portable.
+ *   - DDL is auto-commit on MySQL; a failure mid-run leaves a partial
+ *     conversion. The snapshot tables are how you recover from that.
+ *     Plus the deploy.sh-level `workkit:db:backup` snapshot — defence
+ *     in depth.
  *   - Morph id columns become CHAR(36). Hosts whose entities use bigint
  *     PKs (e.g. User on this app) have their ints stringified; Laravel's
  *     morph relations compare loosely, so this is transparent.
  */
 return new class extends Migration
 {
+    /**
+     * Suffix used for snapshot tables. Fixed (non-timestamped) so a
+     * mid-migration crash followed by a retry doesn't lose the original
+     * snapshot under a different name.
+     */
+    private const BAK_SUFFIX = '_bak_bigint_uuid_2026_04_29';
+
     public function up(): void
     {
         // The fix-up only runs on MySQL — that's the driver where the
@@ -59,6 +84,34 @@ return new class extends Migration
             'role_members'       => config('roles.table_names.role_member', 'role_members'),
             'accesses'           => config('roles.table_names.accesses', 'accesses'),
         ];
+
+        // Bail early if every table already has the correct schema —
+        // saves us a round of snapshot churn on hosts where the migration
+        // already ran (dev / staging) or fresh installs that came up
+        // straight on UUID via the create migration.
+        $needsConversion = array_filter($tables, fn($t) => Schema::hasTable($t) && ! $this->columnIsUuid($t, 'id'));
+        if (! $needsConversion) {
+            return;
+        }
+
+        // ── 1. Snapshot every affected table BEFORE any DDL ──
+        // Gives us a row-perfect copy under {table}_bak_bigint_uuid_2026_04_29
+        // that the operator can use for recovery if anything below blows up.
+        // Bak tables are deliberately not auto-dropped — the operator removes
+        // them once they're confident the conversion succeeded.
+        $rowCounts = [];
+        foreach ($tables as $orig) {
+            if (! Schema::hasTable($orig)) {
+                continue;
+            }
+            $rowCounts[$orig] = (int) DB::table($orig)->count();
+            $this->snapshotTable($orig);
+        }
+
+        // ── 2. Convert ──
+        // (Same in-place column-swap logic as before. Data is preserved
+        // throughout — rows are never deleted, only their id/FK columns
+        // are rewritten with UUIDs. Verification in step 3 confirms.)
 
         // Phase 1 — parent tables (permissions, roles): convert PK from
         // bigint → uuid AND propagate the new ids into every dependent
@@ -89,6 +142,27 @@ return new class extends Migration
         $this->convertMorphIdColumn($tables['accesses'], 'entity_id');
         $this->convertMorphIdColumn($tables['accesses'], 'source_id');
         $this->convertMorphIdColumn($tables['accesses'], 'accessible_id');
+
+        // ── 3. Verify ──
+        // Row count must match the pre-conversion snapshot exactly. Any
+        // mismatch means the conversion lost or duplicated rows; abort
+        // loudly so the operator can restore from the snapshot table.
+        foreach ($rowCounts as $orig => $expected) {
+            $actual = (int) DB::table($orig)->count();
+            if ($actual !== $expected) {
+                throw new \RuntimeException(sprintf(
+                    "Row count mismatch on `%s`: expected %d, got %d after conversion. "
+                    . 'Original rows are preserved in `%s%s` — restore from there.',
+                    $orig, $expected, $actual, $orig, self::BAK_SUFFIX
+                ));
+            }
+        }
+
+        // FK integrity: every child must still reference a row that exists.
+        $this->verifyFkIntegrity($tables['permission_members'], 'permission_id', $tables['permissions']);
+        $this->verifyFkIntegrity($tables['permission_usages'], 'permission_id', $tables['permissions']);
+        $this->verifyFkIntegrity($tables['role_members'],     'role_id',       $tables['roles']);
+        $this->verifyFkIntegrity($tables['roles'],            'parent_id',     $tables['roles'], allowNull: true);
     }
 
     public function down(): void
@@ -313,6 +387,63 @@ return new class extends Migration
     {
         $info = $this->columnInfo($table, $column);
         return $info && $info['nullable'];
+    }
+
+    /**
+     * Take a row-perfect copy of $orig into a sibling backup table.
+     * Idempotent: a previous run that successfully snapshotted but then
+     * crashed mid-conversion is preserved on retry — we never overwrite
+     * an existing populated snapshot. The bak table is the operator's
+     * recovery path if the in-place conversion later fails verification.
+     */
+    private function snapshotTable(string $orig): void
+    {
+        $bak = $orig . self::BAK_SUFFIX;
+
+        if (! Schema::hasTable($bak)) {
+            // Fresh snapshot — copy structure and rows in one pass.
+            DB::statement("CREATE TABLE `{$bak}` LIKE `{$orig}`");
+            DB::statement("INSERT INTO `{$bak}` SELECT * FROM `{$orig}`");
+            return;
+        }
+
+        // Bak table already exists from a prior run. If it's empty,
+        // populate it now (the previous run died right after CREATE).
+        // If it already has rows, leave it alone — that's the original
+        // snapshot we want to preserve.
+        if ((int) DB::table($bak)->count() === 0) {
+            DB::statement("INSERT INTO `{$bak}` SELECT * FROM `{$orig}`");
+        }
+    }
+
+    /**
+     * Confirm every non-null value in $childTable.$fkCol resolves to a
+     * row in $parentTable. Throws on orphan, naming the affected table
+     * so the operator can take it from there. allowNull keeps NULL refs
+     * legal (e.g. roles.parent_id can legitimately be NULL).
+     */
+    private function verifyFkIntegrity(string $childTable, string $fkCol, string $parentTable, bool $allowNull = false): void
+    {
+        if (! Schema::hasTable($childTable) || ! Schema::hasColumn($childTable, $fkCol)) {
+            return;
+        }
+
+        $query = DB::table($childTable . ' as c')
+            ->leftJoin($parentTable . ' as p', 'c.' . $fkCol, '=', 'p.id')
+            ->whereNull('p.id');
+
+        if ($allowNull) {
+            $query->whereNotNull('c.' . $fkCol);
+        }
+
+        $orphans = (int) $query->count();
+        if ($orphans > 0) {
+            throw new \RuntimeException(sprintf(
+                "FK integrity check failed: %d orphan(s) in %s.%s pointing to missing %s rows. "
+                . 'Original rows are preserved in `%s%s`.',
+                $orphans, $childTable, $fkCol, $parentTable, $childTable, self::BAK_SUFFIX
+            ));
+        }
     }
 
     private function dropForeignKeyIfExists(string $table, string $fkName): void
