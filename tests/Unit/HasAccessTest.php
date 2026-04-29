@@ -9,6 +9,7 @@ use Blax\Roles\RolesServiceProvider;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Orchestra\Testbench\TestCase;
 use Workbench\App\Models\Article;
 use Workbench\App\Models\User;
@@ -234,6 +235,7 @@ class HasAccessTest extends TestCase
             'id' => (string) \Illuminate\Support\Str::uuid(),
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => now()->subDay(),
             'created_at' => now(),

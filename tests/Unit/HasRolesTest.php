@@ -7,6 +7,7 @@ use Blax\Roles\Models\Role;
 use Blax\Roles\RolesServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Orchestra\Testbench\TestCase;
 use Workbench\App\Models\User;
 
@@ -328,6 +329,7 @@ class HasRolesTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => now()->subDay(),
             'created_at' => now(),
@@ -346,6 +348,7 @@ class HasRolesTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => now()->addWeek(),
             'created_at' => now(),
@@ -383,6 +386,7 @@ class HasRolesTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => now()->addHours(24),
             'created_at' => now(),
@@ -412,6 +416,7 @@ class HasRolesTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => null,
             'created_at' => now(),
@@ -572,6 +577,7 @@ class HasRolesTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => now()->subDay(),
             'context' => json_encode(['origin_name' => 'Monthly Sub', 'origin_value' => 'ProductPrice:sub-monthly']),
@@ -618,6 +624,7 @@ class HasRolesTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => null,
             'context' => json_encode(['origin_name' => 'Sub', 'origin_value' => 'ProductPrice:sub']),

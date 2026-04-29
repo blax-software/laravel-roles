@@ -41,7 +41,7 @@ return new class extends Migration
 
         if (! Schema::hasColumn($table, 'source_id')) {
             Schema::table($table, function (Blueprint $blueprint) {
-                $blueprint->nullableMorphs('source');
+                $blueprint->nullableUuidMorphs('source');
             });
         }
 

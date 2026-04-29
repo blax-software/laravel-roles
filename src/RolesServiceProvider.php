@@ -15,6 +15,13 @@ class RolesServiceProvider extends \Illuminate\Support\ServiceProvider
             __DIR__ . '/../config/roles.php',
             'roles'
         );
+
+        // Bind the MorphAliasRegistry as a singleton with no aliases registered
+        // by default. Hosts add their own (alias, FQCN) pairs in their service
+        // provider via app(MorphAliasRegistry::class)->register(...). Hosts
+        // that override the binding entirely (e.g. to swap in a stricter
+        // implementation) still work — Laravel honours the host's binding.
+        $this->app->singleton(\Blax\Roles\Support\MorphAliasRegistry::class);
     }
 
     /**

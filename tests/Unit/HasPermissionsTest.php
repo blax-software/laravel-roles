@@ -7,6 +7,7 @@ use Blax\Roles\Models\Role;
 use Blax\Roles\RolesServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Orchestra\Testbench\TestCase;
 use Workbench\App\Models\User;
 
@@ -180,6 +181,7 @@ class HasPermissionsTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => now()->subDay(),
             'created_at' => now(),
@@ -201,6 +203,7 @@ class HasPermissionsTest extends TestCase
         DB::table(config('roles.table_names.role_member'))->insert([
             'role_id' => $role->id,
             'member_id' => $user->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $user->getMorphClass(),
             'expires_at' => now()->addDays(7),
             'created_at' => now(),
@@ -232,6 +235,7 @@ class HasPermissionsTest extends TestCase
         DB::table(config('roles.table_names.permission_member'))->insert([
             'permission_id' => $perm->id,
             'member_id' => $role->id,
+            'id' => (string) Str::uuid(),
             'member_type' => $role->getMorphClass(),
             'expires_at' => now()->subHour(),
             'created_at' => now(),

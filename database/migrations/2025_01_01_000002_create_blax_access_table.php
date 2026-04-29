@@ -24,10 +24,14 @@ return new class extends Migration
         }
 
         Schema::create($table, function (Blueprint $blueprint) {
-            $blueprint->id();
-            $blueprint->morphs('entity');        // Who has the access (User, Role, Permission)
-            $blueprint->morphs('accessible');    // What they have access to (Lection, Scenario, etc.)
-            $blueprint->nullableMorphs('source'); // What conferred this access (Subscription, Order, etc.)
+            // UUID schema so morph_id columns can store the UUID PKs of host
+            // models (Users / Roles / Permissions are all HasUuids). Earlier
+            // versions of this migration used bigint and quietly broke every
+            // insert with "Incorrect integer value: '<uuid>'".
+            $blueprint->uuid('id')->primary();
+            $blueprint->uuidMorphs('entity');         // Who has the access (User, Role, Permission)
+            $blueprint->uuidMorphs('accessible');     // What they have access to (Lection, Scenario, etc.)
+            $blueprint->nullableUuidMorphs('source'); // What conferred this access (Subscription, Order, etc.)
             $blueprint->json('context')->nullable();
             $blueprint->timestamp('expires_at')->nullable();
             $blueprint->timestamps();

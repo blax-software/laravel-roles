@@ -30,7 +30,12 @@ class RoleMember extends MorphPivot
     {
         parent::__construct($attributes);
 
-        $this->table = config('roles.table_names.role_members') ?: parent::getTable();
+        // Config uses the singular key 'role_member' (mapped to 'role_members'
+        // in the default config). Looking up the plural key returned null and
+        // fell through to parent::getTable() — which on a MorphPivot returns
+        // a non-pluralised "role_member", pointing direct queries at a table
+        // that doesn't exist.
+        $this->table = config('roles.table_names.role_member') ?: parent::getTable();
     }
 
     public function role()

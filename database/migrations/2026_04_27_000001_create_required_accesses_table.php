@@ -28,9 +28,13 @@ return new class extends Migration
         }
 
         Schema::create($table, function (Blueprint $blueprint) {
-            $blueprint->id();
-            $blueprint->morphs('holder');   // The gated entity (e.g. Lection)
-            $blueprint->morphs('required'); // The entity whose access unlocks the holder (e.g. Course)
+            // RequiredAccess uses HasUuids; holder/required ids come from
+            // application models that also use UUIDs (Blog/Course/Lection,
+            // Product, Scenario, …). Use uuidMorphs + a uuid PK so the
+            // morph columns can store the UUIDs without truncation.
+            $blueprint->uuid('id')->primary();
+            $blueprint->uuidMorphs('holder');   // The gated entity (e.g. Lection)
+            $blueprint->uuidMorphs('required'); // The entity whose access unlocks the holder (e.g. Course)
             $blueprint->timestamps();
 
             $blueprint->unique(

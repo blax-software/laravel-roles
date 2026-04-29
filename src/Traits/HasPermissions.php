@@ -113,7 +113,7 @@ trait HasPermissions
     {
         $permission_class = config('roles.models.permission');
 
-        if (is_numeric($permission)) {
+        if (is_numeric($permission) || (is_string($permission) && \Illuminate\Support\Str::isUuid($permission))) {
             $permission = $permission_class::find($permission);
         } elseif (is_string($permission)) {
             $permission = $permission_class::firstOrCreate([
@@ -134,7 +134,7 @@ trait HasPermissions
     {
         $permission_class = config('roles.models.permission');
 
-        if (is_numeric($permission)) {
+        if (is_numeric($permission) || (is_string($permission) && \Illuminate\Support\Str::isUuid($permission))) {
             $permission = $permission_class::find($permission);
         } elseif (is_string($permission)) {
             $permission = $permission_class::where('slug', $permission)->first();

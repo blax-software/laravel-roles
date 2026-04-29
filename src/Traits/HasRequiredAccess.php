@@ -69,6 +69,65 @@ trait HasRequiredAccess
     }
 
     /**
+     * Add a required-access target by short alias + id, looking the
+     * target up via the package's MorphAliasRegistry.
+     *
+     * Returns null when either the alias is unknown or the target row
+     * doesn't exist — callers (typically WS controllers) translate that
+     * into a 4xx response. This keeps every host's admin controllers
+     * out of the business of resolving alias maps themselves.
+     */
+    public function addRequiredAccessByAlias(string $alias, string|int $id): ?Model
+    {
+        $class = app(\Blax\Roles\Support\MorphAliasRegistry::class)->resolveClass($alias);
+        if (! $class || ! class_exists($class)) {
+            return null;
+        }
+
+        $target = $class::find($id);
+        if (! $target) {
+            return null;
+        }
+
+        return $this->addRequiredAccess($target);
+    }
+
+    /**
+     * Remove a required-access target by short alias + id. Returns the
+     * delete count (0 if the alias was unknown or the target missing).
+     */
+    public function removeRequiredAccessByAlias(string $alias, string|int $id): int
+    {
+        $class = app(\Blax\Roles\Support\MorphAliasRegistry::class)->resolveClass($alias);
+        if (! $class || ! class_exists($class)) {
+            return 0;
+        }
+
+        $target = $class::find($id);
+        if (! $target) {
+            return 0;
+        }
+
+        return $this->removeRequiredAccess($target);
+    }
+
+    /**
+     * Convenience: list this holder's required-access links rendered
+     * for admin payloads (uses RequiredAccess::toAdminArray which goes
+     * through the MorphAliasRegistry for type aliases and names).
+     *
+     * @return array<int, array{id: mixed, target_type: string, target_id: string, name: string, is_published: bool}>
+     */
+    public function requiredAccessAdminPayload(): array
+    {
+        return $this->requiredAccessLinks()->with('required')->get()
+            ->map(fn($link) => $link->toAdminArray())
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Remove a required-access target.
      *
      * @return int  Number of pivot rows deleted (0 or 1).

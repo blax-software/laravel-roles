@@ -19,9 +19,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // All keys are UUIDs to match the models (HasUuids) and the morph
+        // columns of host apps that are themselves UUID-keyed. Earlier
+        // versions of this migration shipped with $table->id() / morphs()
+        // which produced bigint columns and silently broke every insert
+        // ("Incorrect integer value: '<uuid>' for column 'id'"). The
+        // 2026_04_29 fix-up migration converts existing installs in place.
         if (! Schema::hasTable(config('roles.table_names.permissions'))) {
             Schema::create(config('roles.table_names.permissions'), function (Blueprint $table) {
-                $table->id();
+                $table->uuid('id')->primary();
                 $table->string('slug')->unique();
                 $table->string('description')->nullable();
                 $table->timestamps();
@@ -30,9 +36,9 @@ return new class extends Migration
 
         if (! Schema::hasTable(config('roles.table_names.permission_member'))) {
             Schema::create(config('roles.table_names.permission_member'), function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
-                $table->morphs('member');
+                $table->uuid('id')->primary();
+                $table->foreignUuid('permission_id')->constrained('permissions')->onDelete('cascade');
+                $table->uuidMorphs('member');
                 $table->json('context')->nullable();
                 $table->timestamp('expires_at')->nullable();
                 $table->timestamps();
@@ -41,10 +47,10 @@ return new class extends Migration
 
         if (! Schema::hasTable(config('roles.table_names.permission_usage'))) {
             Schema::create(config('roles.table_names.permission_usage'), function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
+                $table->uuid('id')->primary();
+                $table->foreignUuid('permission_id')->constrained('permissions')->onDelete('cascade');
                 $table->float('usage', 8)->default(1);
-                $table->morphs('user');
+                $table->uuidMorphs('user');
                 $table->json('context')->nullable();
                 $table->timestamps();
             });
@@ -52,8 +58,8 @@ return new class extends Migration
 
         if (! Schema::hasTable(config('roles.table_names.roles'))) {
             Schema::create(config('roles.table_names.roles'), function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('parent_id')
+                $table->uuid('id')->primary();
+                $table->foreignUuid('parent_id')
                     ->nullable()
                     ->constrained('roles')
                     ->onDelete('set null');
@@ -66,9 +72,9 @@ return new class extends Migration
 
         if (! Schema::hasTable(config('roles.table_names.role_member'))) {
             Schema::create(config('roles.table_names.role_member'), function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
-                $table->morphs('member');
+                $table->uuid('id')->primary();
+                $table->foreignUuid('role_id')->constrained('roles')->onDelete('cascade');
+                $table->uuidMorphs('member');
                 $table->json('context')->nullable();
                 $table->timestamp('expires_at')->nullable();
                 $table->timestamps();

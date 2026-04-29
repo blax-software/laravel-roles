@@ -47,4 +47,33 @@ class RequiredAccess extends Model
     {
         return $this->morphTo();
     }
+
+    /**
+     * Render this link as an admin-friendly payload, using the
+     * MorphAliasRegistry for the type alias and human-readable name.
+     *
+     * Returns null for orphaned rows (target deleted) so callers can
+     * `->filter()` them out without explicit guards. Hosts that need
+     * extra fields can compose this with their own merge:
+     *
+     *   $link->toAdminArray() + ['custom' => $link->required->custom]
+     */
+    public function toAdminArray(): ?array
+    {
+        $target = $this->required;
+        if (! $target) {
+            return null;
+        }
+
+        /** @var \Blax\Roles\Support\MorphAliasRegistry $registry */
+        $registry = app(\Blax\Roles\Support\MorphAliasRegistry::class);
+
+        return [
+            'id'           => $this->id,
+            'target_type'  => $registry->aliasFor($this->required_type, $target),
+            'target_id'    => (string) $this->required_id,
+            'name'         => $registry->nameFor($target),
+            'is_published' => ($target->published_at ?? null) !== null,
+        ];
+    }
 }

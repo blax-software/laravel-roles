@@ -3,10 +3,22 @@
 namespace Blax\Roles\Traits;
 
 use Blax\Roles\Models\Role;
+use Illuminate\Support\Str;
 
 trait HasRoles
 {
     use HasPermissions;
+
+    /**
+     * A "role identifier" is anything that can be passed in lieu of a Role
+     * model: a numeric primary key (legacy), a UUID primary key, or a
+     * Role instance. Anything else (a non-numeric, non-UUID string) is
+     * treated as a *name* by the higher-level methods.
+     */
+    private static function isRoleIdString(mixed $value): bool
+    {
+        return is_numeric($value) || (is_string($value) && Str::isUuid($value));
+    }
 
     /**
      * Get all roles for the user.
@@ -62,13 +74,13 @@ trait HasRoles
      */
     public function assignRole(string|Role $role, int $max_times = 1)
     {
-        if (is_string($role) && !is_numeric($role)) {
+        if (self::isRoleIdString($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        } elseif (is_string($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
                 'name' => $role,
                 'slug' => str()->slug($role)
             ]);
-        } elseif (is_numeric($role)) {
-            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
         }
 
         if ($max_times >= 0) {
@@ -96,10 +108,10 @@ trait HasRoles
      */
     public function removeRole(string|Role $role)
     {
-        if (is_string($role) && !is_numeric($role)) {
-            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::where('slug', $role)->first();
-        } elseif (is_numeric($role)) {
+        if (self::isRoleIdString($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        } elseif (is_string($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::where('slug', $role)->first();
         } elseif (!$role instanceof Role) {
             throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
         }
@@ -122,14 +134,14 @@ trait HasRoles
     {
         $roleIds = [];
         foreach ($roles as $role) {
-            if (is_string($role) && !is_numeric($role)) {
+            if (self::isRoleIdString($role)) {
+                $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+            } elseif (is_string($role)) {
                 $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
                     'name' => $role,
                 ], [
                     'slug' => str()->slug($role)
                 ]);
-            } elseif (is_numeric($role)) {
-                $roleModel = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
             } elseif ($role instanceof Role) {
                 $roleModel = $role;
             } elseif (is_object($role) && isset($role->id)) {
@@ -167,14 +179,14 @@ trait HasRoles
         }
 
         // Resolve role
-        if (is_string($role) && !is_numeric($role)) {
+        if (self::isRoleIdString($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        } elseif (is_string($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
                 'name' => $role,
             ], [
                 'slug' => str()->slug($role)
             ]);
-        } elseif (is_numeric($role)) {
-            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
         } elseif (!$role instanceof Role) {
             throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
         }
@@ -227,14 +239,14 @@ trait HasRoles
         }
 
         // Resolve role
-        if (is_string($role) && !is_numeric($role)) {
+        if (self::isRoleIdString($role)) {
+            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
+        } elseif (is_string($role)) {
             $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::firstOrCreate([
                 'name' => $role,
             ], [
                 'slug' => str()->slug($role)
             ]);
-        } elseif (is_numeric($role)) {
-            $role = config('roles.models.role', \Blax\Roles\Models\Role::class)::find($role);
         } elseif (!$role instanceof Role) {
             throw new \InvalidArgumentException('Role must be a string, numeric ID, or an instance of Role.');
         }
@@ -255,12 +267,15 @@ trait HasRoles
         if ($existing) {
             $existing->extendByHours($hours, $forceExpiry);
         } else {
+            // Pass the context as an array — the RoleMember pivot has a
+            // 'context' => 'array' cast that JSON-encodes it on save.
+            // json_encode()-ing it here would double-encode the value.
             $this->roles()->attach($role->id, [
                 'expires_at' => now()->addHours($hours),
-                'context' => json_encode([
+                'context' => [
                     'origin_name' => $originName,
                     'origin_value' => $originValue,
-                ]),
+                ],
             ]);
         }
 
